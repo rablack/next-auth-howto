@@ -17,4 +17,4 @@ the way they are to aid in understanding existing code.
 The Auth.js documentation is relatively good if you know
 what you are trying to achieve. It is not so useful if
 you are trying to work out what some existing code does.
--- Robert Black
+&mdash;&nbsp;Robert Black
