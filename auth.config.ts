@@ -11,6 +11,7 @@
 import { Account, NextAuthConfig, Profile, Session, User } from "next-auth";
 import { AdapterUser } from "next-auth/adapters";
 import { JWT } from "next-auth/jwt";
+import { NextRequest, NextResponse } from "next/server";
 
 interface JwtParams {
   token: JWT;
@@ -31,6 +32,16 @@ interface SignInParams {
   user: User;
   account: Account | null;
   profile?: Profile;
+}
+
+interface RedirectParams {
+  url: string;
+  baseUrl: string;
+}
+
+interface AuthorizedParams {
+  request: NextRequest;
+  auth: Session | null;
 }
 
 export const authConfig = {
@@ -55,6 +66,37 @@ export const authConfig = {
       console.log("Sign in by", user, account, profile);
       return true;
     },
+    async redirect({ url, baseUrl }: RedirectParams): Promise<string> {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+
+      // Allows callback URLs on the same origin
+      if (new URL(url).origin === baseUrl) return url;
+
+      return baseUrl;
+    },
+    // Note that the authorized callback can be called as part of
+    // handling the middleware.
+    //
+    // Return true for successfully authorized,
+    // false to deny access (shows login box), or
+    // a NextResponse to deny access with additional
+    // control such as redirecting the URL.
+    authorized({ request, auth }: AuthorizedParams): boolean | NextResponse {
+      const url = request.nextUrl;
+      const isLoggedIn = !!auth?.user;
+      const requiresLogin = url.pathname.startsWith("/profile");
+
+      if (requiresLogin && !isLoggedIn) {
+        return false; // Show a login screen
+        // Alternatvely redirect to the home page as follows:
+        // return NextResponse.redirect(new URL("/", url));
+      }
+      return true;
+    },
+  },
+  session: {
+    strategy: "jwt",
   },
   providers: [],
 } satisfies NextAuthConfig;
