@@ -55,8 +55,8 @@ export const authConfig = {
       if (user) {
         token.id = user.id;
       }
-      console.log("Token:", token);
-      console.log("User:", user);
+      console.log("JWT Token:", token);
+      console.log("JWT User:", user);
       return token;
     },
     // https://authjs.dev/reference/core#session
@@ -65,11 +65,10 @@ export const authConfig = {
     session({ session, token, user }: SessionParams): Session {
       // In the JWT strategy user (the database user) is not used
       void user;
-      console.log("Start:", session);
       if (typeof token.id === "string" && session.user) {
         session.user.id = token.id;
       }
-      console.log("Finish:", session);
+      console.log("Session:", session);
       return session;
     },
     // https://authjs.dev/reference/core#signin
@@ -82,7 +81,14 @@ export const authConfig = {
       if (email in blacklist) {
         return false;
       }
-      console.log("Sign in by", user, account, profile);
+      console.log(
+        "Sign in by",
+        user,
+        ", account:",
+        account,
+        ", provider profile:",
+        profile
+      );
       return true;
     },
     // From https://authjs.dev/reference/core#redirect
