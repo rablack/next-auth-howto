@@ -26,6 +26,7 @@ interface JwtParams {
 interface SessionParams {
   session: Session;
   token: JWT;
+  user?: AdapterUser;
 }
 
 interface SignInParams {
@@ -46,6 +47,10 @@ interface AuthorizedParams {
 
 export const authConfig = {
   callbacks: {
+    // Called when a web token is about to be created
+    // or updated. The returned data will be included
+    // in the token.
+    // https://authjs.dev/reference/core#jwt
     jwt({ token, user }: JwtParams): JWT | null {
       if (user) {
         token.id = user.id;
@@ -54,7 +59,12 @@ export const authConfig = {
       console.log("User:", user);
       return token;
     },
-    session({ session, token }: SessionParams): Session {
+    // https://authjs.dev/reference/core#session
+    // On the server, construct the session information to be
+    // passed to the client.
+    session({ session, token, user }: SessionParams): Session {
+      // In the JWT strategy user (the database user) is not used
+      void user;
       console.log("Start:", session);
       if (typeof token.id === "string" && session.user) {
         session.user.id = token.id;
@@ -62,10 +72,22 @@ export const authConfig = {
       console.log("Finish:", session);
       return session;
     },
+    // https://authjs.dev/reference/core#signin
+    // Verify that the user is allowed to sign in. For example check
+    // the blacklist
     signIn({ user, account, profile }: SignInParams): boolean | string {
+      const blacklist = ["chad@example.com"];
+      const email = profile?.email || user.email || "";
+
+      if (email in blacklist) {
+        return false;
+      }
       console.log("Sign in by", user, account, profile);
       return true;
     },
+    // From https://authjs.dev/reference/core#redirect
+    // When a call using a redirect URL is made (e.g. signIn)
+    // there is an opportunity to rewrite the URL.
     async redirect({ url, baseUrl }: RedirectParams): Promise<string> {
       // Allows relative callback URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`;
@@ -75,13 +97,14 @@ export const authConfig = {
 
       return baseUrl;
     },
-    // Note that the authorized callback can be called as part of
+    // Note that the authorized() callback can be called as part of
     // handling the middleware.
     //
     // Return true for successfully authorized,
     // false to deny access (shows login box), or
     // a NextResponse to deny access with additional
     // control such as redirecting the URL.
+    // https://authjs.dev/reference/nextjs#authorized
     authorized({ request, auth }: AuthorizedParams): boolean | NextResponse {
       const url = request.nextUrl;
       const isLoggedIn = !!auth?.user;
@@ -96,7 +119,17 @@ export const authConfig = {
     },
   },
   session: {
+    // The Credentials provider won't persist data in a database.
+    // If we want to use Credentials in testing and OAuth in
+    // production, using the JWT strategy keeps them similar.
+    //
+    // If you want to use strategy: "database", one way to do
+    // it is to test with OAuth proxied through a site with a stable
+    // URL ().
+    // See https://authjs.dev/getting-started/deployment#securing-a-preview-deployment
     strategy: "jwt",
   },
+  // Providers get added in auth.ts
+  // https://authjs.dev/guides/edge-compatibility#split-config
   providers: [],
 } satisfies NextAuthConfig;
