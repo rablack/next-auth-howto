@@ -45,6 +45,17 @@ interface AuthorizedParams {
   auth: Session | null;
 }
 
+// An example of extending the information
+// sent to the front-end by adding a field to contain
+// the number of cats that they have.
+export interface UserWithCats extends User {
+  cats?: number;
+}
+
+export interface SessionWithCats extends Session {
+  user?: UserWithCats;
+}
+
 export const authConfig = {
   callbacks: {
     // Called when a web token is about to be created
@@ -54,22 +65,25 @@ export const authConfig = {
     jwt({ token, user }: JwtParams): JWT | null {
       if (user) {
         token.id = user.id;
+        console.log("JWT Token:", token);
+        console.log("JWT User:", user);
       }
-      console.log("JWT Token:", token);
-      console.log("JWT User:", user);
       return token;
     },
     // https://authjs.dev/reference/core#session
     // On the server, construct the session information to be
-    // passed to the client.
-    session({ session, token, user }: SessionParams): Session {
+    // passed to the front-end (RSC or client component).
+    session({ session, token, user }: SessionParams): SessionWithCats {
       // In the JWT strategy user (the database user) is not used
       void user;
-      if (typeof token.id === "string" && session.user) {
-        session.user.id = token.id;
+      const newSession: SessionWithCats = structuredClone(session);
+      if (typeof token.id === "string" && newSession.user) {
+        newSession.user.id = token.id;
+        // You can pass extra properties to the client
+        newSession.user.cats = 4;
       }
       console.log("Session:", session);
-      return session;
+      return newSession;
     },
     // https://authjs.dev/reference/core#signin
     // Verify that the user is allowed to sign in. For example check

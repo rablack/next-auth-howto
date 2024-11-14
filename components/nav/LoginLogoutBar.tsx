@@ -2,6 +2,7 @@ import { auth, signIn, signOut } from "@/auth";
 import Link from "next/link";
 
 const LoginLogoutBar = async () => {
+  // Access the session from a server component
   const session = await auth();
   const user = session?.user;
   return (
