@@ -14,6 +14,7 @@ import { Provider } from "next-auth/providers";
 import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import { authConfig } from "./auth.config";
+import { dbCheckCredentials } from "./lib/data/db";
 
 type CredentialField = "email" | "password";
 
@@ -31,20 +32,19 @@ if (process.env.NODE_ENV === "development") {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      authorize: (
+      authorize: async (
         credentials: Partial<Record<CredentialField, unknown>>,
         request: Request
-      ): User | null => {
+      ): Promise<User | null> => {
         void request; // Ignore request
         if (
-          credentials.password === "password" &&
-          credentials.email === "bob@example.com"
+          typeof credentials.password === "string" &&
+          typeof credentials.email === "string"
         ) {
-          return {
-            email: "bob@example.com",
-            name: "Bob",
-            image: null,
-          } satisfies User;
+          return await dbCheckCredentials({
+            email: credentials.email || "",
+            password: credentials.password,
+          });
         }
         return null;
       },

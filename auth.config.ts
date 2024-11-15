@@ -62,11 +62,12 @@ export const authConfig = {
     // or updated. The returned data will be included
     // in the token.
     // https://authjs.dev/reference/core#jwt
-    jwt({ token, user }: JwtParams): JWT | null {
+    jwt({ token, user, account }: JwtParams): JWT | null {
       if (user) {
         token.id = user.id;
         console.log("JWT Token:", token);
         console.log("JWT User:", user);
+        console.log("JWT Account:", account);
       }
       return token;
     },
@@ -88,15 +89,25 @@ export const authConfig = {
     // https://authjs.dev/reference/core#signin
     // Verify that the user is allowed to sign in. For example check
     // the blacklist
-    signIn({ user, account, profile }: SignInParams): boolean | string {
+    async signIn({
+      user,
+      account,
+      profile,
+    }: SignInParams): Promise<boolean | string> {
       const blacklist = ["chad@example.com"];
       const email = profile?.email || user.email || "";
 
-      if (email in blacklist) {
+      if (
+        blacklist.find((item) => {
+          return email === item;
+        })
+      ) {
+        console.log("User blacklisted:", email);
         return false;
       }
       console.log(
         "Sign in by",
+        email,
         user,
         ", account:",
         account,
